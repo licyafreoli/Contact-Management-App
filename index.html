@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <title>Meus Contatos</title>
+    <style>
+        body {
+            background-color: #1a202c;
+        }
+        .alphabet-nav {
+            position: fixed;
+            left: 10px;
+            top: 100px;
+            z-index: 10;
+        }
+        .alphabet-nav a {
+            display: block;
+            padding: 5px;
+            color: white;
+            text-decoration: none;
+        }
+        .alphabet-nav a:hover {
+            color: #1e793f;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #2d3748;
+            padding: 20px;
+            border: 1px solid #1a202c;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            position: relative;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: white;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <header class="bg-gray-800 text-white text-center py-6">
+        <h1 class="text-3xl font-bold">Contatos</h1>
+    </header>
+
+    <main class="container mx-auto p-6">
+        <div class="flex flex-col md:flex-row mb-4">
+            <input id="search" type="text" placeholder="Pesquisar contatos..." class="w-full p-3 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 mb-4 md:mb-0 md:mr-4 bg-gray-700 text-white placeholder-gray-400" oninput="filterContacts()">
+            <button id="addContact" class="bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition duration-200">
+                + Adicionar
+            </button>
+        </div>
+
+        <div id="contactList" class="grid grid-cols-1 gap-4"></div>
+    </main>
+
+    <footer class="bg-gray-800 text-white text-center py-4 mt-6">
+        <p>&copy; 2024 Rossana Lícya. Todos os direitos reservados.</p>
+    </footer>
+
+    <div id="contactModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modalName" class="text-lg font-semibold text-white"></h2>
+            <p id="modalPhone" class="text-gray-400"></p>
+        </div>
+    </div>
+
+    <script>
+        const contacts = [
+            { name: "Ana Costa", phone: "(41) 94567-8901", avatar: "https://i.pravatar.cc/150?u=a042581f4e29026706d" },
+            { name: "Carol Pereira", phone: "(31) 93456-7890", avatar: "https://i.pravatar.cc/150?u=a042581f4e29026705d" },
+            { name: "João Silva", phone: "(11) 91234-5678", avatar: "https://i.pravatar.cc/150?u=fake@pravatar.com" },
+            { name: "Juliana Almeida", phone: "(61) 96789-0123", avatar: "https://i.pravatar.cc/150?u=a042581f4e29026708d" },
+            { name: "Lucas Santos", phone: "(51) 95678-9012", avatar: "https://i.pravatar.cc/150?u=a042581f4e29026707d" },
+            { name: "Maria Oliveira", phone: "(21) 92345-6789", avatar: "https://i.pravatar.cc/150?u=a042581f4e29026704d" }
+        ];
+
+        function renderContacts() {
+            const contactList = document.getElementById('contactList');
+            contactList.innerHTML = '';
+
+            const groupedContacts = groupContactsByInitial(contacts);
+            Object.keys(groupedContacts).forEach(letter => {
+                const section = document.createElement('div');
+                section.id = letter;
+                section.innerHTML = `<h2 class="text-xl font-bold text-white mt-6">${letter}</h2>`;
+                groupedContacts[letter].forEach((contact, index) => {
+                    const contactCard = document.createElement('div');
+                    contactCard.className = 'bg-gray-800 shadow-md rounded-lg p-4 flex items-center transition-transform transform hover:scale-105 duration-300 cursor-pointer';
+                    contactCard.innerHTML = `
+                        <img src="${contact.avatar}" alt="${contact.name}" class="w-16 h-16 rounded-full mr-4">
+                        <div class="flex-grow">
+                            <h2 class="text-lg font-semibold text-white">${contact.name}</h2>
+                            <p class="text-gray-400">${contact.phone}</p>
+                        </div>
+                        <div class="flex flex-col items-center space-y-1">
+                            <button onclick="editContact(${index})" class="text-yellow-500 hover:text-yellow-700 text-sm">
+                                <i class="fas fa-pencil-alt"></i>
+                            </button>
+                            <button onclick="deleteContact(${index})" class="text-red-500 hover:text-red-700 text-sm">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    `;
+                    contactCard.onclick = () => openModal(contact.name, contact.phone);
+                    section.appendChild(contactCard);
+                });
+                contactList.appendChild(section);
+            });
+        }
+
+        function groupContactsByInitial(contacts) {
+            const grouped = {};
+            contacts.forEach(contact => {
+                const firstLetter = contact.name.charAt(0).toUpperCase();
+                if (!grouped[firstLetter]) {
+                    grouped[firstLetter] = [];
+                }
+                grouped[firstLetter].push(contact);
+            });
+            return grouped;
+        }
+
+        function filterContacts() {
+            const query = document.getElementById('search').value.toLowerCase();
+            const filteredContacts = contacts.filter(contact => 
+                contact.name.toLowerCase().includes(query) || 
+                contact.phone.includes(query)
+            );
+            renderFilteredContacts(filteredContacts);
+        }
+
+        function renderFilteredContacts(filteredContacts) {
+            const contactList = document.getElementById('contactList');
+            contactList.innerHTML = '';
+            const groupedContacts = groupContactsByInitial(filteredContacts);
+            Object.keys(groupedContacts).forEach(letter => {
+                const section = document.createElement('div');
+                section.id = letter;
+                section.innerHTML = `<h2 class="text-xl font-bold text-white mt-6">${letter}</h2>`;
+                groupedContacts[letter].forEach((contact, index) => {
+                    const contactCard = document.createElement('div');
+                    contactCard.className = 'bg-gray-800 shadow-md rounded-lg p-4 flex items-center transition-transform transform hover:scale-105 duration-300 cursor-pointer';
+                    contactCard.innerHTML = `
+                        <img src="${contact.avatar}" alt="${contact.name}" class="w-16 h-16 rounded-full mr-4">
+                        <div class="flex-grow">
+                            <h2 class="text-lg font-semibold text-white">${contact.name}</h2>
+                            <p class="text-gray-400">${contact.phone}</p>
+                        </div>
+                        <div class="flex flex-col items-center space-y-1">
+                            <button onclick="editContact(${index})" class="text-yellow-500 hover:text-yellow-700 text-sm">
+                                ✏️
+                            </button>
+                            <button onclick="deleteContact(${index})" class="text-red-500 hover:text-red-700 text-sm">
+                                🗑️
+                            </button>
+                        </div>
+                    `;
+                    contactCard.onclick = () => openModal(contact.name, contact.phone);
+                    section.appendChild(contactCard);
+                });
+                contactList.appendChild(section);
+            });
+        }
+
+        function addContact() {
+            const name = prompt("Nome:");
+            const phone = prompt("Telefone:");
+            if (name && phone) {
+                const avatarIndex = contacts.length + 1; 
+                contacts.push({ name, phone, avatar: `https://i.pravatar.cc/150?u=a042581f4e2902670${avatarIndex}d` });
+                renderContacts();
+            }
+        }
+
+        function deleteContact(index) {
+            if (confirm("Tem certeza que deseja excluir este contato?")) {
+                contacts.splice(index, 1);
+                renderContacts();
+            }
+        }
+
+        function editContact(index) {
+            const name = prompt("Novo nome:", contacts[index].name);
+            const phone = prompt("Novo telefone:", contacts[index].phone);
+            if (name && phone) {
+                contacts[index] = { ...contacts[index], name, phone };
+                renderContacts();
+            }
+        }
+
+        function openModal(name, phone) {
+            document.getElementById('modalName').textContent = name;
+            document.getElementById('modalPhone').textContent = phone;
+            document.getElementById('contactModal').style.display = 'flex'; // Alterado para flex
+        }
+
+        function closeModal() {
+            document.getElementById('contactModal').style.display = 'none';
+        }
+
+        document.getElementById('addContact').onclick = addContact;
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('contactModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        renderContacts();
+    </script>
+</body>
+</html>
