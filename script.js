@@ -29,10 +29,10 @@ function renderContacts() {
                     <p class="text-gray-400">${contact.phone}</p>
                 </div>
                 <div class="flex space-x-4">
-                    <button class="text-gray-400 hover:text-yellow-300" onclick="editContact(${index})">
+                    <button class="text-gray-400 hover:text-yellow-300" onclick="editContact(${contacts.indexOf(contact)})">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="text-gray-400 hover:text-red-300" onclick="confirmDeleteContact(${index})">
+                    <button class="text-gray-400 hover:text-red-300" onclick="confirmDeleteContact(${contacts.indexOf(contact)})">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 </div>
@@ -60,12 +60,14 @@ function openModal(title, name = '', phone = '', index = null) {
     const modalTitle = document.getElementById('modalTitle');
     const modalName = document.getElementById('modalName');
     const modalPhone = document.getElementById('modalPhone');
-    const saveButton = document.getElementById('saveButton');
 
     modalTitle.innerText = title;
     modalName.value = name;
     modalPhone.value = phone;
 
+    modal.classList.remove('hidden');
+
+    const saveButton = document.getElementById('saveButton');
     saveButton.onclick = function () {
         if (index === null) {
             contacts.push({ name: modalName.value, phone: modalPhone.value, avatar: `https://i.pravatar.cc/150?u=${Math.random()}` });
@@ -76,8 +78,6 @@ function openModal(title, name = '', phone = '', index = null) {
         closeModal();
         renderContacts();
     };
-
-    modal.classList.remove('hidden');
 }
 
 function closeModal() {
@@ -102,52 +102,35 @@ function closeDeleteModal() {
 }
 
 function deleteContact() {
-    contacts.splice(contactToDelete, 1);
-    contactToDelete = null;
-    closeDeleteModal();
-    renderContacts();
+    if (contactToDelete !== null) {
+        contacts.splice(contactToDelete, 1);
+        contactToDelete = null;
+        closeDeleteModal();
+        renderContacts();
+    }
 }
 
 function filterContacts() {
-    const searchTerm = document.getElementById('search').value.toLowerCase();
-    const filteredContacts = contacts.filter(contact => contact.name.toLowerCase().includes(searchTerm) || contact.phone.includes(searchTerm));
-    renderFilteredContacts(filteredContacts);
-}
-
-function renderFilteredContacts(filteredContacts) {
-    const contactList = document.getElementById('contactList');
-    contactList.innerHTML = '';
-
-    const groupedContacts = groupContactsByInitial(filteredContacts);
-    Object.keys(groupedContacts).forEach(letter => {
-        const section = document.createElement('div');
-        section.id = letter;
-        section.innerHTML = `<h2 class="text-2xl font-bold text-white mt-6">${letter}</h2>`;
-        
-        groupedContacts[letter].forEach((contact, index) => {
-            const contactCard = document.createElement('div');
-            contactCard.className = 'bg-gray-800 shadow-md rounded-lg p-4 flex items-center hover:bg-gray-700 transition duration-300';
-            contactCard.innerHTML = `
-                <img src="${contact.avatar}" alt="${contact.name}" class="w-16 h-16 rounded-full mr-4 shadow-md">
-                <div class="flex-grow">
-                    <h2 class="text-lg font-semibold text-white">${contact.name}</h2>
-                    <p class="text-gray-400">${contact.phone}</p>
-                </div>
-                <div class="flex space-x-4">
-                    <button class="text-gray-400 hover:text-yellow-300" onclick="editContact(${index})">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="text-gray-400 hover:text-red-300" onclick="confirmDeleteContact(${index})">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                </div>
-            `;
-            section.appendChild(contactCard);
+    const searchValue = document.getElementById('search').value.toLowerCase();
+    const contactCards = document.querySelectorAll('#contactList > div');
+    contactCards.forEach(card => {
+        const contactsInSection = card.querySelectorAll('.bg-gray-800');
+        let sectionVisible = false;
+        contactsInSection.forEach(contact => {
+            const contactName = contact.querySelector('h2').innerText.toLowerCase();
+            if (contactName.includes(searchValue)) {
+                contact.style.display = 'flex';
+                sectionVisible = true;
+            } else {
+                contact.style.display = 'none';
+            }
         });
-        contactList.appendChild(section);
+        card.style.display = sectionVisible ? 'block' : 'none';
     });
 }
 
-document.getElementById('addContact').addEventListener('click', () => openModal('Adicionar Contato'));
+document.getElementById('addContact').addEventListener('click', () => {
+    openModal('Adicionar Contato');
+});
 
 renderContacts();
